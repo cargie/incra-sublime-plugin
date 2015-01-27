@@ -7,9 +7,6 @@ import os
 
 class AllAutocomplete(sublime_plugin.EventListener):
 
-	def on_new(self,view):
-		print("carl")
-
 	def on_query_completions(self, view, prefix, locations):
 		for root, dirs, files in os.walk('/data/ShopData/Test/designs/Sample6/'):
 			for file in files:
