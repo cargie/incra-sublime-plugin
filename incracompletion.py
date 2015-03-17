@@ -2,55 +2,62 @@ import sublime_plugin
 import sublime
 import os, fnmatch,re
 
-# limits to prevent bogging down the system
 result = []
+def get_scope_attribute():
+	return ({
+		'Address':[],
+		'Admin':[],
+		'Attribute':[],
+		'AttributeGroup':[],
+		'AttributeOption':[],
+		'BaseProduct':[],
+		'Block':[],
+		'BookYear':[],
+		'Product':['Name','String'],
+		'Brand':['Id','Image'],
+		'Category':['Static','Blootic'],
+		}
+	)
+
+# limits to prevent bogging down the system
 class IncraComplete(sublime_plugin.EventListener):
 
 	def on_query_completions(self, view, prefix, locations):
-		#print(view.word())
-		open_bracket = view.substr(sublime.Region(locations[0],locations[0]-2))
+
+		# print(prefix,len(prefix))
+		start= locations[0]
+		end = locations[0]
+		open_bracket_colon = view.substr(sublime.Region(locations[0],locations[0]-2))
+		open_bracket = view.substr(sublime.Region(locations[0],locations[0]-1))
 		close_bracket = view.substr(sublime.Region(locations[0],locations[0]+1))
 		trigger = view.substr(sublime.Region(locations[0],locations[0]-1))
 		extension = os.path.splitext(view.file_name())[1]
-		print(open_bracket,close_bracket)
-		if (open_bracket == "[:" and extension == ".html" and close_bracket == "]") or (trigger == '?' and close_bracket == "]"):
-			print(trigger,extension)
+		if (open_bracket_colon == "[:" and extension == ".html"):
+			print(locations[0])
 			try:
 				regex = re.compile(prefix, re.IGNORECASE)
 				result.sort()
 				matches = [string for string in result if re.search(regex, string)]
-				# print (matches)
-				match = [(w, w.replace('.html', '',)) for w in matches]
-				# print (match,prefix)
-				print(match)
-				return match
+				match = [(w, (w.replace('.html', '',))+ ({True:'',False:']'}[close_bracket==']']) )  for w in matches]
+				
+				return (match,sublime.INHIBIT_WORD_COMPLETIONS | sublime.INHIBIT_EXPLICIT_COMPLETIONS)
+				
+
 			except ValueError:
 				print(e)
+		elif(open_bracket== "[" and extension == ".html"):
+			return [(w, (w.replace('.html', '',))+ ({True:'',False:'$0]'}[close_bracket==']']) )  for w in sorted(get_scope_attribute().keys())]
 
+		elif(close_bracket=="]"):
+			vw = ''
+			x = 0
+			while(vw != '['):
+				vw = view.substr(sublime.Region(start-1-x, end-x))
+				x=x+1
+				print(vw)
+			vw = view.substr(sublime.Region(start-x+1, end-1))
+			return [(w,w) for w in (get_scope_attribute().get(vw))]
 		return []
-
-	def without_duplicates(words):
-		result = []
-		for w in words:
-			if w not in result:
-				result.append(w)
-				return result
-
-	def on_new(self,view):
-		dirs = sublime.active_window().folders()
-		if len(dirs) == 1:
-			for d in dirs:
-				for root, dirs, files in os.walk(d):
-					for file in files:
-					# without_duplicates(files)
-					# print (files)
-						matches = [(w, w.replace('.html', '',)) for w in files]
-					# print (matches)
-						for m in files:
-							if m not in  result:
-								result.append(m)
-								print (result)
-
 
 	def on_post_save(self,view):
 		dirs = sublime.active_window().folders()
@@ -67,18 +74,15 @@ class IncraComplete(sublime_plugin.EventListener):
 								result.append(m)
 								print (result)
 
-
 	def __init__(self):
 		dirs = sublime.active_window().folders()
 		if len(dirs) == 1:
 			for d in dirs:
 				for root, dirs, files in os.walk(d):
 					for file in files:
-					# without_duplicates(files)
-					# print (files)
 						matches = [(w, w.replace('.html', '',)) for w in files]
 					# print (matches)
 						for m in files:
 							if m not in  result:
 								result.append(m)
-								# print (result)
+								print (result)
